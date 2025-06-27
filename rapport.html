@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Download Reports</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap"
+    rel="stylesheet"
+  />
+  <link
+    rel="stylesheet"
+    href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+  />
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #1e40af, #1e293b);
+      color: #f1f5f9;
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+    }
+    .navbar {
+      background-color: rgba(31, 41, 55, 0.95);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+      padding: 0.75rem 1.5rem;
+    }
+    .navbar-brand,
+    .navbar-nav .nav-link {
+      color: #818cf8;
+      font-weight: 600;
+      transition: color 0.3s ease;
+    }
+    .navbar-brand:hover,
+    .navbar-nav .nav-link:hover {
+      color: #6366f1;
+      text-decoration: none;
+    }
+    .navbar-nav .nav-item.active .nav-link {
+      color: #f97316;
+      font-weight: 700;
+    }
+    .container {
+      max-width: 960px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+    }
+    .jumbotron {
+      background: rgba(79, 70, 229, 0.85);
+      color: white;
+      padding: 2.5rem 2rem;
+      border-radius: 1rem;
+      box-shadow: 0 16px 40px rgba(79, 70, 229, 0.5);
+      text-align: center;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+      user-select: none;
+      font-size: 2.25rem;
+    }
+    .download-buttons {
+      margin-top: 20px;
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+    }
+    .btn-download {
+      background: #f97316;
+      border: none;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-download:hover {
+      background: #c2410c;
+      color: white;
+      text-decoration: none;
+    }
+    .btn-download i {
+      font-size: 1.2rem;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg">
+    <a class="navbar-brand" href="{{ url_for('index') }}">IPS System</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" 
+      aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon" style="color:#818cf8;">&#9776;</span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">Deconnection</a></li>
+        <li class="nav-item active"><a class="nav-link" href="{{ url_for('rapport') }}">Rapport</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="jumbotron">
+      <h1>Download Reports</h1>
+      <p>Select the logs you want to download.</p>
+      <div class="download-buttons">
+        <a href="{{ url_for('download_output_logs') }}" class="btn-download" download>
+          <i class="fa fa-file-csv"></i> Output Logs CSV
+        </a>
+        <a href="{{ url_for('download_input_logs') }}" class="btn-download" download>
+          <i class="fa fa-file-csv"></i> Input Logs CSV
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script src="//code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="//maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>

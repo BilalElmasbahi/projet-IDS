@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard Monitoring</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: "Inter", sans-serif;
+      background-color: #f0f4f8;
+      color: #003d5c;
+      min-height: 100vh;
+    }
+
+    nav.navbar {
+      background-color: #003d5c;
+      color: #fff;
+      padding: 1rem 2rem;
+      font-weight: 600;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .container {
+      padding-top: 20px;
+      padding-bottom: 40px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      font-weight: 800;
+      color: #003d5c;
+    }
+
+    .chart-container {
+      margin-bottom: 30px;
+      padding: 1rem;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    canvas {
+      max-width: 100%;
+    }
+  </style>
+</head>
+
+<body>
+  <nav class="navbar navbar-expand-lg">
+    <div class="container-fluid">
+      <span class="navbar-brand text-white"><i class="fas fa-network-wired"></i> Real-Time Network Dashboard</span>
+      <li class="nav-item active"><a class="nav-link" href="#">Home</a></li>
+      <li class="nav-item"><a class="nav-link" href="{{ url_for('rapport') }}">Reports</a></li>
+      <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">Logout</a></li>
+      <li class="nav-item"><a class="nav-link" href="{{ url_for('tableau') }}">Tableau</a></li>
+    </div>
+  </nav>
+
+  <div class="container">
+    <h1>Statistiques Réseau en Temps Réel</h1>
+
+    <div class="row">
+      <div class="col-md-4 chart-container">
+        <h5 class="text-center">Répartition des IP Sources</h5>
+        <canvas id="sourceIPChart"></canvas>
+      </div>
+      <div class="col-md-4 chart-container">
+        <h5 class="text-center">Protocoles Utilisés</h5>
+        <canvas id="protocolChart"></canvas>
+      </div>
+      <div class="col-md-4 chart-container">
+        <h5 class="text-center">Ports Sources</h5>
+        <canvas id="srcPortChart"></canvas>
+      </div>
+
+      <div class="col-md-4 chart-container">
+        <h5 class="text-center">Répartition des Risques</h5>
+        <canvas id="riskChart"></canvas>
+      </div>
+      <div class="col-md-4 chart-container">
+        <h5 class="text-center">Prédictions</h5>
+        <canvas id="predictionChart"></canvas>
+      </div>
+      <div class="col-md-4 chart-container">
+        <h5 class="text-center">Probabilités</h5>
+        <canvas id="probabilityChart"></canvas>
+      </div>
+
+      <div class="col-md-12 chart-container">
+        <h5 class="text-center">Top 10 des Flux</h5>
+        <canvas id="top10FlowsChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    $(document).ready(function () {
+      const socket = io.connect('http://' + document.domain + ':' + location.port + '/test');
+      let messages_received = [];
+      let charts = {};
+
+      const protocolColors = {
+        'TCP': '#3498db',
+        'UDP': '#e67e22',
+        'ICMP': '#9b59b6',
+        'Other': '#95a5a6'
+      };
+
+      const riskColorsFixed = {
+        "Minimal": "#27ae60",
+        "Low": "#2ecc71",
+        "Medium": "#f1c40f",
+        "High": "#e67e22",
+        "Very High": "#e74c3c",
+        "Unknown": "#95a5a6"
+      };
+
+      function hashStringToColor(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+          hash = str.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+        return "#" + "00000".substring(0, 6 - c.length) + c;
+      }
+
+      function extractIP(ipString) {
+        if (typeof ipString !== 'string') return "Unknown IP";
+        const match = ipString.match(/\d+\.\d+\.\d+\.\d+/);
+        return match ? match[0] : ipString;
+      }
+
+      function createOrUpdateChart(ctx, type, labels, data, backgroundColors) {
+        const configOptions = {
+          responsive: true,
+          plugins: {
+            legend: { position: 'bottom' },
+            tooltip: { enabled: true }
+          }
+        };
+
+        // Bar horizontale pour top10FlowsChart
+        if (ctx === 'top10FlowsChart') {
+          configOptions.indexAxis = 'y';
+        }
+
+        if (charts[ctx]) {
+          charts[ctx].data.labels = labels;
+          charts[ctx].data.datasets[0].data = data;
+          charts[ctx].data.datasets[0].backgroundColor = backgroundColors;
+          charts[ctx].options = configOptions;
+          charts[ctx].update();
+        } else {
+          charts[ctx] = new Chart(document.getElementById(ctx), {
+            type: type,
+            data: {
+              labels: labels,
+              datasets: [{
+                label: ctx,
+                data: data,
+                backgroundColor: backgroundColors,
+              }]
+            },
+            options: configOptions
+          });
+        }
+      }
+
+      function updateRiskChart() {
+        const riskCounts = {};
+        messages_received.forEach(flow => {
+          let risk = "Unknown";
+          if (flow && flow.length > 7) {
+            const val = flow[7];
+            if (typeof val === 'string' && riskColorsFixed.hasOwnProperty(val)) {
+              risk = val;
+            } else if (typeof val === 'number') {
+              const riskMap = ["Minimal", "Low", "Medium", "High", "Very High"];
+              risk = riskMap[val] || "Unknown";
+            }
+          }
+          riskCounts[risk] = (riskCounts[risk] || 0) + 1;
+        });
+
+        const allRisks = ["Minimal", "Low", "Medium", "High", "Very High", "Unknown"];
+        allRisks.forEach(risk => {
+          if (!riskCounts[risk]) riskCounts[risk] = 0;
+        });
+
+        const riskLabels = allRisks;
+        const riskValues = riskLabels.map(risk => riskCounts[risk]);
+        const riskColors = riskLabels.map(risk => riskColorsFixed[risk]);
+
+        createOrUpdateChart('riskChart', 'pie', riskLabels, riskValues, riskColors);
+      }
+
+      function updateOtherCharts() {
+        const sourceIPCounts = {};
+        const protocolCounts = {};
+        const srcPortCounts = {};
+        const predictionCounts = {};
+        const probabilityCounts = {};
+        const flowCounts = {};
+
+        messages_received.forEach(flow => {
+          if (!flow || flow.length < 6) return;
+
+          const ip = extractIP(flow[1]);
+          const port = flow[2] ? flow[2].toString() : "Unknown";
+          const proto = flow[5] ? flow[5].toUpperCase() : 'Other';
+          const prediction = flow[8] ? flow[8] : "Unknown";
+          const probability = flow[9] ? flow[9].toString() : "0";
+
+          sourceIPCounts[ip] = (sourceIPCounts[ip] || 0) + 1;
+          protocolCounts[proto] = (protocolCounts[proto] || 0) + 1;
+          srcPortCounts[port] = (srcPortCounts[port] || 0) + 1;
+          predictionCounts[prediction] = (predictionCounts[prediction] || 0) + 1;
+          probabilityCounts[probability] = (probabilityCounts[probability] || 0) + 1;
+
+          const flowKey = `${ip}:${port}:${proto}`;
+          flowCounts[flowKey] = (flowCounts[flowKey] || 0) + 1;
+        });
+
+        function checkEmpty(dataObj, label) {
+          if (Object.keys(dataObj).length === 0) {
+            dataObj[label] = 1;
+          }
+        }
+        checkEmpty(sourceIPCounts, "No IP");
+        checkEmpty(protocolCounts, "No Protocol");
+        checkEmpty(srcPortCounts, "No Port");
+        checkEmpty(predictionCounts, "No Prediction");
+        checkEmpty(probabilityCounts, "No Probability");
+        checkEmpty(flowCounts, "No Flow");
+
+        const sortedFlows = Object.entries(flowCounts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 10);
+        const topFlowLabels = sortedFlows.map(item => item[0]);
+        const topFlowData = sortedFlows.map(item => item[1]);
+
+        const ipColors = Object.keys(sourceIPCounts).map(ip => hashStringToColor(ip));
+        const protoColors = Object.keys(protocolCounts).map(p => protocolColors[p] || protocolColors['Other']);
+
+        function generateColors(count) {
+          const baseColors = ['#f39c12', '#e74c3c', '#9b59b6', '#34495e', '#1abc9c', '#2ecc71'];
+          let colors = [];
+          for (let i = 0; i < count; i++) {
+            colors.push(baseColors[i % baseColors.length]);
+          }
+          return colors;
+        }
+
+        createOrUpdateChart('sourceIPChart', 'pie', Object.keys(sourceIPCounts), Object.values(sourceIPCounts), ipColors);
+        createOrUpdateChart('protocolChart', 'doughnut', Object.keys(protocolCounts), Object.values(protocolCounts), protoColors);
+        createOrUpdateChart('srcPortChart', 'bar', Object.keys(srcPortCounts), Object.values(srcPortCounts), generateColors(Object.keys(srcPortCounts).length));
+        createOrUpdateChart('predictionChart', 'doughnut', Object.keys(predictionCounts), Object.values(predictionCounts), generateColors(Object.keys(predictionCounts).length));
+        createOrUpdateChart('probabilityChart', 'bar', Object.keys(probabilityCounts), Object.values(probabilityCounts), generateColors(Object.keys(probabilityCounts).length));
+        createOrUpdateChart('top10FlowsChart', 'bar', topFlowLabels, topFlowData, generateColors(topFlowLabels.length));
+      }
+
+      socket.on('connect', () => {
+        console.log("Connected to server");
+      });
+
+      socket.on('newresult', function (msg) {
+        console.log("Received newresult:", msg.result);
+        if (!msg.result || !Array.isArray(msg.result)) return;
+
+        if (messages_received.length >= 100) messages_received.shift();
+        messages_received.push(msg.result);
+
+        updateRiskChart();
+        updateOtherCharts();
+      });
+
+      setInterval(() => {
+        updateRiskChart();
+      }, 120000);
+    });
+  </script>
+
+</body>
+
+</html>

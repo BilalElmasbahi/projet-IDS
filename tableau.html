@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tableau des Flows</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+  <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"></script>
+
+  <style>
+    body {
+      font-family: "Inter", sans-serif;
+      background: linear-gradient(135deg, #1e40af, #1e293b);
+      color: #f1f5f9;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    nav.navbar {
+      background: rgba(30, 41, 59, 0.95);
+      padding: 1rem 2rem;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+    }
+
+    .container {
+      max-width: 95%;
+      margin: 2rem auto;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+      flex: 1;
+      overflow-x: hidden;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      font-weight: 900;
+      font-size: 2.75rem;
+      letter-spacing: 1px;
+      color: #e0e7ff;
+      text-shadow: 0 0 15px rgba(128, 147, 255, 0.7);
+    }
+
+    .table-responsive {
+      overflow-x: auto;
+      margin-top: 1.5rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-radius: 12px;
+      background: rgba(30, 41, 59, 0.85);
+      color: #e0e7ff;
+      box-shadow: 0 20px 40px rgb(50 50 93 / 0.25), 0 10px 20px rgb(0 0 0 / 0.3);
+      min-width: 1200px; /* for large table */
+    }
+
+    thead tr {
+      background: linear-gradient(90deg, #4f46e5, #6366f1);
+      color: white;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.9rem;
+      letter-spacing: 0.08em;
+    }
+
+    tbody tr {
+      transition: background-color 0.25s ease;
+      cursor: default;
+      height: 50px;
+    }
+
+    th, td {
+      padding: 1rem 1.5rem;
+      text-align: left;
+      vertical-align: middle;
+      font-size: 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      white-space: nowrap;
+      min-width: 100px;
+      color: #ffffff;
+    }
+
+    tbody tr:nth-child(even) {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    tbody tr:hover {
+      background-color: rgba(255, 255, 255, 0.15);
+    }
+
+    a.detail-link {
+      color: #a5b4fc;
+      font-weight: 600;
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+
+    a.detail-link:hover {
+      color: #818cf8;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg">
+    <div class="container">
+      <a class="navbar-brand" href="{{ url_for('index') }}">
+        <div class="logo-icon"><i class="fas fa-shield-alt"></i></div>
+        IP System
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
+              aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon" style="color:#818cf8;">&#9776;</span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ml-auto">
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Home</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('rapport') }}">Reports</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">Logout</a></li>
+          <li class="nav-item"><a class="nav-link active" href="{{ url_for('tableau') }}">Tableau</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container mt-3">
+    <h1>Tableau des Flows Capturés</h1>
+    <div class="table-responsive">
+      <table class="table table-bordered" id="tableauDetails">
+        <thead>
+          <tr>
+            <th>Flow ID</th>
+            <th>Src IP</th>
+            <th>Src Port</th>
+            <th>Dest IP</th>
+            <th>Dest Port</th>
+            <th>Protocol</th>
+            <th>Flow start time</th>
+            <th>Flow last seen</th>
+            <th>App name</th>
+            <th>PID</th>
+            <th>Prediction</th>
+            <th>Prob</th>
+            <th>Risk</th>
+            <th>Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- rows will be appended here dynamically -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+<script>
+$(document).ready(function(){
+  // Connect to Socket.IO server at the namespace /test
+  const socket = io.connect('http://' + document.domain + ':' + location.port + '/test');
+
+  let messages_received = [];
+
+  socket.on('connect', () => {
+    console.log("Connected to server");
+  });
+
+  socket.on('newresult', function(msg) {
+    console.log("Received newresult", msg);
+
+    if(!msg.result) return;
+
+    // Keep only the last 100 entries max
+    if (messages_received.length >= 100){
+      messages_received.shift();
+    }
+
+    messages_received.push(msg.result);
+
+    let html = '';
+    // Display newest entries on top
+    for(let i = messages_received.length - 1; i >= 0; i--) {
+      html += '<tr>';
+      for(let j = 0; j < messages_received[i].length; j++){
+        html += '<td>' + messages_received[i][j] + '</td>';
+      }
+      // Add link to detail page with flow_id param (flow_id is at index 0)
+      html += '<td><a class="detail-link" href="/flow-detail?flow_id=' + messages_received[i][0] + '">View</a></td>';
+      html += '</tr>';
+    }
+
+    $('#tableauDetails tbody').html(html);
+  });
+});
+</script>
+</body>
+</html>

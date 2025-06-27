@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Contrôle des IPs</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <style>
+    table { border-collapse: collapse; width: 80%; margin: 20px auto; }
+    th, td { padding: 10px; border: 1px solid #ccc; text-align: center; }
+    .blocked { color: red; font-weight: bold; }
+    .unblocked { color: green; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h2 style="text-align:center;">🛡️ Gestion des adresses IP</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Adresse IP</th>
+        <th>Nombre de flux</th>
+        <th>État</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in ips %}
+      <tr>
+        <td>{{ item.ip }}</td>
+        <td>{{ item.count }}</td>
+        <td class="{{ 'blocked' if item.blocked else 'unblocked' }}">
+          {{ 'Bloquée' if item.blocked else 'Non bloquée' }}
+        </td>
+        <td>
+          {% if item.blocked %}
+          <button class="unblock-btn" data-ip="{{ item.ip }}">Débloquer</button>
+          {% else %}
+          <button class="block-btn" data-ip="{{ item.ip }}">Bloquer</button>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <script>
+    $(document).ready(function(){
+      $('.block-btn').click(function(){
+        let ip = $(this).data('ip');
+        $.post('/block_ip', {ip: ip}, function(){
+          location.reload();
+        });
+      });
+      $('.unblock-btn').click(function(){
+        let ip = $(this).data('ip');
+        $.post('/unblock_ip', {ip: ip}, function(){
+          location.reload();
+        });
+      });
+    });
+  </script>
+</body>
+</html>

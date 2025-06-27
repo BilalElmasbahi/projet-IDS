@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>System IPS Detail</title>
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap"
+    rel="stylesheet"
+  />
+  <link
+    rel="stylesheet"
+    href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+  />
+  <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+  <style>
+    :root {
+      --color-bg: #f9fafb;
+      --color-primary: #4f46e5;
+      --color-primary-light: #6366f1;
+      --color-accent: #f97316;
+      --color-text-dark: #374151;
+      --color-text-light: #6b7280;
+      --color-border: #d1d5db;
+      --color-shadow: rgba(79, 70, 229, 0.2);
+      --font-family: 'Poppins', sans-serif;
+    }
+
+    body {
+      background: var(--color-bg);
+      color: var(--color-text-dark);
+      font-family: var(--font-family);
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+    }
+
+    .navbar {
+      background-color: white;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      padding: 1rem 2rem;
+    }
+
+    .navbar-brand,
+    .navbar-nav .nav-link {
+      color: var(--color-primary);
+      font-weight: 600;
+      transition: color 0.3s ease;
+    }
+
+    .navbar-brand:hover,
+    .navbar-nav .nav-link:hover {
+      color: var(--color-primary-light);
+      text-decoration: none;
+    }
+
+    .navbar-nav .nav-item.active .nav-link {
+      color: var(--color-accent);
+      font-weight: 700;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+    }
+
+    .jumbotron {
+      background: white;
+      border-radius: 1rem;
+      box-shadow: 0 8px 24px var(--color-shadow);
+      color: var(--color-primary);
+      padding: 2.5rem 2rem;
+      font-size: 2.25rem;
+      font-weight: 900;
+      text-align: center;
+      user-select: none;
+      letter-spacing: 0.05em;
+      border: 1px solid var(--color-border);
+    }
+
+    .risk-container {
+      margin-top: 1rem;
+      font-size: 1.5rem;
+      font-weight: 700;
+      text-align: center;
+      color: var(--color-accent);
+      user-select: text;
+    }
+
+    h3 {
+      margin: 3rem 0 1rem;
+      font-weight: 800;
+      color: var(--color-primary);
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .exp-container {
+      background-color: white;
+      border-radius: 1rem;
+      box-shadow: 0 6px 20px var(--color-shadow);
+      max-height: 450px;
+      overflow-y: auto;
+      padding: 1rem 2rem;
+      color: var(--color-text-dark);
+      font-size: 0.95rem;
+      line-height: 1.5;
+      border: 1px solid var(--color-border);
+    }
+
+    .ae-plot-container {
+      margin-top: 1rem;
+      max-width: 100%;
+      overflow-x: auto;
+    }
+
+    .ae-plot-container > div {
+      min-width: 600px;
+    }
+
+    .features-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      color: var(--color-text-dark);
+      border: 1px solid var(--color-border);
+      background: white;
+      border-radius: 0 0 0.75rem 0.75rem;
+      overflow: hidden;
+    }
+
+    .features-table td {
+      border: 1px solid var(--color-border);
+      padding: 12px 16px;
+      font-size: 0.9rem;
+      white-space: nowrap;
+      user-select: text;
+    }
+
+    .features-table tr:nth-child(odd) td {
+      background-color: #f3f4f6;
+    }
+
+    .features-table tr:nth-child(even) td {
+      background-color: white;
+    }
+
+    .exp-container::-webkit-scrollbar,
+    .ae-plot-container::-webkit-scrollbar {
+      height: 10px;
+      width: 10px;
+    }
+
+    .exp-container::-webkit-scrollbar-thumb,
+    .ae-plot-container::-webkit-scrollbar-thumb {
+      background-color: var(--color-accent);
+      border-radius: 5px;
+    }
+
+    .exp-container::-webkit-scrollbar-track,
+    .ae-plot-container::-webkit-scrollbar-track {
+      background-color: var(--color-bg);
+    }
+
+    canvas {
+      background-color: #f9fafb !important;
+      border-radius: 1rem !important;
+      box-shadow: 0 6px 20px rgba(79, 70, 229, 0.3) !important;
+      padding: 1rem !important;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg">
+  <a class="navbar-brand" href="{{ url_for('index') }}">IPS System</a>
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" 
+      aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon" style="color: var(--color-primary);">&#9776;</span>
+  </button>
+  <div class="collapse navbar-collapse" id="navbarNav">
+    <ul class="navbar-nav ml-auto">
+      <li class="nav-item active"><a class="nav-link" href="{{ url_for('index') }}">Home</a></li>
+      <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">Deconnection</a></li>
+    </ul>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="jumbotron">
+    <h1>System IPS</h1>
+  </div>
+</div>
+
+<div class="container risk-container">
+  {{ risk|safe }}
+</div>
+
+<hr />
+
+{% if exp %}
+  <h3>LIME-explained results using Random Forest Classifier (Top-6 values):</h3>
+  <div class="exp-container">
+    {{ exp|safe }}
+  </div>
+  <hr />
+{% endif %}
+
+<h3>Ranking features by reconstruct error by Auto Encoder:</h3>
+<div class="ae-plot-container">
+  {{ ae_plot|safe }}
+</div>
+
+<hr />
+
+<h3>List of all features and values used:</h3>
+<div class="container">
+  <table class="features-table">
+    {% for table in tables %}
+    <tr>
+      <td>{{ table|safe }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="//maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
