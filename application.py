@@ -185,8 +185,8 @@ with open('models/explainer', 'rb') as f:
 
 predict_fn_rf = lambda x: classifier.predict_proba(x).astype(float)
 
-TELEGRAM_TOKEN = '7779811622:AAF38VLojW03ObIMBhhh3FGFiuzsu9jyJBg'
-TELEGRAM_CHAT_ID = '5172402645'
+TELEGRAM_TOKEN = 
+TELEGRAM_CHAT_ID = 
 
 def send_telegram_message(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
